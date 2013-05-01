@@ -1,12 +1,11 @@
 package com.godai.graphstuff.data.repositories;
 
 import android.content.ContentResolver;
-import android.content.ContentUris;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.ContactsContract.CommonDataKinds;
+import android.provider.ContactsContract.Data;
 import android.provider.ContactsContract.RawContacts;
-import android.provider.ContactsContract.RawContacts.Entity;
 
 import com.godai.graphstuff.data.Person;
 
@@ -17,41 +16,48 @@ import com.godai.graphstuff.data.Person;
  */
 public class PersonRepository {
 	
-	private static final String [] MIMETYPES = { CommonDataKinds.Phone.CONTENT_ITEM_TYPE,
-												 CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE };
+	private static final Uri DATA_URI = Data.CONTENT_URI;
 	
+	// Currently only returns FIRST phone number
 	public static Person getContactByID(ContentResolver cr, int id) {
 		
-		String phone;
-		String name;
+		int rawID = -1;
+		String phone = null;
 		
-		Uri uri = ContentUris.withAppendedId(RawContacts.CONTENT_URI, id);
-		uri = Uri.withAppendedPath(uri, Entity.CONTENT_DIRECTORY);
+		//Fetch the contact name separately.
+		String name = getName(cr, id);
 		
-		/* Opaque though this is, it fetches the contact's name and phone
-		 * number based on the ID given. */
-		Cursor cursor = cr.query(uri, new String [] { Entity.DATA1 },
-								 Entity.MIMETYPE + " = ? OR " +
-								 Entity.MIMETYPE + " = ?",
-								 MIMETYPES, Entity.MIMETYPE);
+		// Set up fields to get the real ID and the phone number
+		String where = String.format("%s = ? AND %s = ?", RawContacts.CONTACT_ID, Data.MIMETYPE);
+		String [] data = { Integer.toString(id), CommonDataKinds.Phone.CONTENT_ITEM_TYPE };
 		
-		/* The above SHOULD always return two rows with the name first, then
-		 * the phone number. if either row doesn't exist, we can't make the 
-		 * contact. */
+		Cursor cursor = cr.query(DATA_URI, new String[] { Data.RAW_CONTACT_ID, Data.DATA1  }, where, data, null);
+		
+		if(cursor.moveToFirst()) {
+			rawID = cursor.getInt(0);
+			phone = cursor.getString(1);
+		}
+		
+		if(rawID == -1)
+			return null;
+		
+		return new Person(rawID, name, phone);
+		
+	}
+	
+	private static String getName(ContentResolver cr, int id) {
+		
+		String where = String.format("%s = ? AND %s = ?", RawContacts.CONTACT_ID, Data.MIMETYPE);
+		String [] data = { Integer.toString(id), CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE };
+		
+		Cursor cursor = cr.query(DATA_URI, new String[] { Data.DATA1 }, where, data, null);
+		
 		if(cursor.moveToFirst())
-			name = cursor.getString(0);		
+			return cursor.getString(0);
 		else
 			return null;
 		
-		if(cursor.moveToNext())
-			phone = cursor.getString(0);
-		else	
-			return null;
-		
-		cursor.close();
-		
-		return new Person(id, name, phone);
-		
 	}
+	
 
 }

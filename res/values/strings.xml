@@ -4,5 +4,6 @@
     <string name="app_name">GraphStuff</string>
     <string name="action_settings">Settings</string>
     <string name="hello_world">Hello world!</string>
+    <string name="pick_contact">Pick Contact</string>
 
 </resources>
