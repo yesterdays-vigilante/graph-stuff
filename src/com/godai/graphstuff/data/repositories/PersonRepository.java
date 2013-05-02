@@ -23,7 +23,6 @@ public class PersonRepository {
 		
 		int rawID = -1;
 		String phone = null;
-		
 		//Fetch the contact name separately.
 		String name = getName(cr, id);
 		

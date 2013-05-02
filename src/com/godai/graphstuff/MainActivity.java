@@ -3,14 +3,17 @@ package com.godai.graphstuff;
 import java.util.List;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.provider.ContactsContract.Contacts;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.widget.TextView;
 
+import com.godai.graphstuff.data.AppData;
 import com.godai.graphstuff.data.Person;
 import com.godai.graphstuff.data.SMS;
 import com.godai.graphstuff.data.repositories.PersonRepository;
@@ -28,7 +31,10 @@ public class MainActivity extends Activity {
     	super.onCreate(savedInstanceState);        
         setContentView(R.layout.activity_main);
         
+        AppData.intialise((TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE), getResources());
+                
         text = (TextView) findViewById(R.id.text_field_one);
+        getResources();
         
         text.setText("Please select a contact");
         

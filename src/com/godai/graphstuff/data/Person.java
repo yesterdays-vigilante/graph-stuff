@@ -17,7 +17,11 @@ public class Person {
 		
 		_id = id;
 		_name = name;
-		_phone = phone;
+		
+		if(phone.charAt(0) == '+')
+			_phone = phone;
+		else
+			_phone = String.format("%+d%s", AppData.countryCode(), phone.substring(1));
 		
 	}
 
@@ -39,9 +43,28 @@ public class Person {
 		
 	}
 	
+	public String phoneNoAreaCode() {
+		
+		// The +1 is for the plus
+		return "0" + _phone.substring(AppData.countryCodeLength() + 1);
+		
+	}
+	
 	public String spacedPhone() {
 		
 		return StringHelper.addSpacesToPhone(_phone);
+		
+	}
+	
+	public String spacedPhoneNoAreaCode() {
+		
+		return StringHelper.addSpacesToPhone(phoneNoAreaCode());
+	
+	}
+	
+	public String [] allPhonePermutations() {
+		
+		return new String [] { _phone, phoneNoAreaCode(), spacedPhone(), spacedPhoneNoAreaCode() };
 		
 	}
 
