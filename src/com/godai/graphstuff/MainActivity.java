@@ -1,6 +1,8 @@
 package com.godai.graphstuff;
 
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import android.app.Activity;
 import android.content.Context;
@@ -61,8 +63,10 @@ public class MainActivity extends Activity {
     				text.setText("No phone number recorded");
     			else {
     		        List<SMS> messages = repository.getAllMessagesFromAndToContact(person);
-    		        repository.getMessageCountsForDates(person);
-
+    		        Map<Date, Integer> counts = repository.getMessageCountsForDates(person);
+    		        for(Date date : counts.keySet()) {
+    		        	Log.d("PIE", date.toString() + ": " + counts.get(date));
+    		        }
 
     		        String msgText = person.name() + " and I have exchanged a total of " + 
     		        				 messages.size() + " messages";

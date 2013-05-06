@@ -1,16 +1,16 @@
 package com.godai.graphstuff.data.repositories;
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.GregorianCalendar;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.joda.time.LocalDate;
 
 import android.content.ContentResolver;
 import android.database.Cursor;
 import android.net.Uri;
-import android.util.Log;
 
 import com.godai.graphstuff.data.Person;
 import com.godai.graphstuff.data.SMS;
@@ -82,23 +82,28 @@ public class SMSRepository {
 	/** 
 	 * @return A map of dates to message counts
 	 */
-	public Map<Calendar, Integer> getMessageCountsForDates(Person contact) {
+	public Map<Date, Integer> getMessageCountsForDates(Person contact) {
+		
+		HashMap<Date, Integer> values = new HashMap<Date, Integer>();
 		
 		String where = "person = ? OR (address = ? OR address = ? OR address = ? OR address = ?)";
 		String [] params = { Integer.toString(contact.id()), contact.phone(), 
 							 contact.phoneNoAreaCode(), contact.spacedPhone(),
 							 contact.spacedPhoneNoAreaCode() };
 		
-		Cursor cursor = _resolver.query(ALL_SMS_URI, new String [] { "date", "count(_id)" }, where, params, "date ASC");
+		Cursor cursor = _resolver.query(ALL_SMS_URI, new String [] { "date" }, where, params, "date ASC");
 		cursor.moveToFirst();
 		
 		do {
-			GregorianCalendar calendar = new GregorianCalendar();
-			calendar.setTime(new Date(cursor.getInt(0)));
-			Log.d("PIE", "date: " + calendar.toString() + " count: " + cursor.getString(1) );
+			Date date = new LocalDate(cursor.getLong(0)).toDate();
+			Integer count = values.get(date);
+			if(count == null)
+				values.put(date, 1);
+			else
+				values.put(date, count + 1);
 		} while(cursor.moveToNext());
 		
-		return null;
+		return values;
 		
 	}
 	
