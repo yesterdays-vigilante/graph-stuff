@@ -2,7 +2,7 @@ package com.godai.graphstuff.data.repositories;
 
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -84,7 +84,7 @@ public class SMSRepository {
 	 */
 	public Map<Date, Integer> getMessageCountsForDates(Person contact) {
 		
-		HashMap<Date, Integer> values = new HashMap<Date, Integer>();
+		LinkedHashMap<Date, Integer> values = new LinkedHashMap<Date, Integer>();
 		
 		String where = "person = ? OR (address = ? OR address = ? OR address = ? OR address = ?)";
 		String [] params = { Integer.toString(contact.id()), contact.phone(), 
@@ -131,5 +131,6 @@ public class SMSRepository {
 					   cursor.getInt(9) > 0, cursor.getInt(10) > 0);
 		
 	}
+	
 
 }

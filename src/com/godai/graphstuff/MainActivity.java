@@ -65,18 +65,26 @@ public class MainActivity extends Activity {
     		        List<SMS> messages = repository.getAllMessagesFromAndToContact(person);
     		        Map<Date, Integer> counts = repository.getMessageCountsForDates(person);
     		        for(Date date : counts.keySet()) {
-    		        	Log.d("PIE", date.toString() + ": " + counts.get(date));
+    		        	Log.d("DATE", date.toString() + ": " + counts.get(date));
     		        }
 
     		        String msgText = person.name() + " and I have exchanged a total of " + 
     		        				 messages.size() + " messages";
+    		        
+    		        float total=0;
+    		        for(SMS msg : messages ){
+    		        	total += msg.getMeanWordLen();
+    		        }
+    		        
+    		        msgText = msgText + "\nWith an aveage word length of "+(total/messages.size());
+    		        
 
     		        text.setText(msgText);
     			}
     		}
     	}
     	else {
-    		Log.w("DEBUG", "Contact picker did not return OK");
+    		Log.e("CPICKER", "Contact picker did not return OK");
     	}
     	
     }
