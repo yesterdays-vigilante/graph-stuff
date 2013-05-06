@@ -1,9 +1,13 @@
 package com.godai.graphstuff.data;
 
+import java.util.ArrayList;
+
 /**
  * Represents an SMS in the system. No, really.
  * 
  * @author zedd
+ * @author josht
+ * 
  */
 public class SMS {
 	
@@ -104,4 +108,28 @@ public class SMS {
 		
 	}
 	
+	public ArrayList<String> getWordArray(){
+		String[] arr = _body.split(" ");
+		ArrayList<String> words = new ArrayList<String>(); 
+		
+		for(int i = 0; i <arr.length;i++) {
+			if(!(arr[i].equals(" "))) {
+				words.add(arr[i]);
+			}
+		}
+		
+		return words;
+	}
+	
+	
+	public float getMeanWordLen(){
+		float total = 0;
+		
+		ArrayList<String> words = getWordArray();
+		
+		for(int i=0;i<words.size();i++){
+			total += words.get(i).length();
+		}
+		return (total/words.size());
+	}
 }
