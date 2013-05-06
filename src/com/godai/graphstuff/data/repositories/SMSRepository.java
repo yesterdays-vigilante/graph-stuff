@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.joda.time.DateTime;
 import org.joda.time.LocalDate;
 
 import android.content.ContentResolver;
@@ -53,29 +54,35 @@ public class SMSRepository {
 	
 	public List<SMS> getIncomingMessagesFromContact(Person contact) {
 		
-		Cursor cursor = _resolver.query(INBOX_URI, SMS_COLUMNS, 
-								 	    "person = ?",
-								 	    new String[] { Integer.toString(contact.id()) },
-								 	    null);
-		
-		List<SMS> messages =  getMessagesFromCursor(cursor);
-		cursor.close();
-		
-		return messages;
+		return getMessages(INBOX_URI, SMS_COLUMNS, 
+						   "person = ?",
+						   new String[] { Integer.toString(contact.id()) },
+						   null);
 		
 	}
 	
 	public List<SMS> getOutgoingMessagesFromContact(Person contact) {
 		
-		Cursor cursor = _resolver.query(OUTBOX_URI, SMS_COLUMNS, 
-				 				 	    "address = ? OR address = ? OR  address = ? OR address = ?",
-				 				 	    contact.allPhonePermutations(),
-				 				 	    null);
+		return getMessages(OUTBOX_URI, SMS_COLUMNS, 
+				 		   "address = ? OR address = ? OR  address = ? OR address = ?",
+				 		   contact.allPhonePermutations(), null);
+	}
+	
+	public List<SMS> getMessagesForDayOf(Person contact, Date date) {
 		
-		List<SMS> messages = getMessagesFromCursor(cursor);
-		cursor.close();
+		DateTime startOfDay = new DateTime(date).withTimeAtStartOfDay();
+		// Really truly seems to be the nicest way to get the end of the day x_X
+		DateTime endOfDay = new DateTime(date).withHourOfDay(23).withMinuteOfHour(59).withSecondOfMinute(59);
 		
-		return messages;
+		String where = "(person = ? OR (address = ? OR address = ? OR address = ?" +
+					   " OR address = ?)) AND date BETWEEN ? AND ?";
+		String [] params = { Integer.toString(contact.id()), contact.phone(),
+							 contact.phoneNoAreaCode(), contact.spacedPhone(),
+							 contact.spacedPhoneNoAreaCode(),
+							 Long.toString(startOfDay.getMillis()), 
+							 Long.toString(endOfDay.getMillis()) };
+		
+		return getMessages(ALL_SMS_URI, SMS_COLUMNS, where, params,"date ASC");
 		
 	}
 	
@@ -84,8 +91,9 @@ public class SMSRepository {
 	 */
 	public Map<Date, Integer> getMessageCountsForDates(Person contact) {
 		
-		LinkedHashMap<Date, Integer> values = new LinkedHashMap<Date, Integer>();
+		Map<Date, Integer> values = new LinkedHashMap<Date, Integer>();
 		
+		// Unfortunately, we can't do GROUP BY in a ContentResolver
 		String where = "person = ? OR (address = ? OR address = ? OR address = ? OR address = ?)";
 		String [] params = { Integer.toString(contact.id()), contact.phone(), 
 							 contact.phoneNoAreaCode(), contact.spacedPhone(),
@@ -97,6 +105,7 @@ public class SMSRepository {
 		do {
 			Date date = new LocalDate(cursor.getLong(0)).toDate();
 			Integer count = values.get(date);
+					
 			if(count == null)
 				values.put(date, 1);
 			else
@@ -104,6 +113,15 @@ public class SMSRepository {
 		} while(cursor.moveToNext());
 		
 		return values;
+		
+	}
+	
+	private List<SMS> getMessages(Uri uri, String [] columns, String condition, String [] params, String order) {
+		
+		Cursor cursor = _resolver.query(uri, columns, condition, params, order);
+		cursor.moveToFirst();
+		
+		return getMessagesFromCursor(cursor);
 		
 	}
 	
