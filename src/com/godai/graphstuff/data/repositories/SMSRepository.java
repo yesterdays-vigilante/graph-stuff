@@ -1,11 +1,16 @@
 package com.godai.graphstuff.data.repositories;
 
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.Map;
 
 import android.content.ContentResolver;
 import android.database.Cursor;
 import android.net.Uri;
+import android.util.Log;
 
 import com.godai.graphstuff.data.Person;
 import com.godai.graphstuff.data.SMS;
@@ -22,44 +27,82 @@ public class SMSRepository {
 	 * appear to be any other way to do it. It's not for clients, so no matter. */
 	private static Uri INBOX_URI = Uri.parse("content://sms/inbox");
 	private static Uri OUTBOX_URI = Uri.parse("content://sms/sent");
+	private static Uri ALL_SMS_URI = Uri.parse("content://sms");
 	
 	private static String [] SMS_COLUMNS = { "_id", "thread_id", "address",
 											 "body", "person", "date",
 											 "date_sent", "status", "protocol",
 											 "read", "seen" };
 	
-	public static List<SMS> getAllMessagesFromAndToContact(ContentResolver cr, Person contact) {
+	private ContentResolver _resolver;
+	
+	public SMSRepository(ContentResolver cr) {
 		
-		List<SMS> messages = getIncomingMessagesFromContact(cr, contact);
-		messages.addAll(getOutgoingMessagesFromContact(cr, contact));
+		_resolver = cr;
+		
+	}
+	
+	public List<SMS> getAllMessagesFromAndToContact(Person contact) {
+		
+		List<SMS> messages = getIncomingMessagesFromContact(contact);
+		messages.addAll(getOutgoingMessagesFromContact(contact));
 		
 		return messages;
 		
 	}
 	
-	public static List<SMS> getIncomingMessagesFromContact(ContentResolver cr, Person contact) {
+	public List<SMS> getIncomingMessagesFromContact(Person contact) {
 		
-		Cursor cursor = cr.query(INBOX_URI, SMS_COLUMNS, 
-								 "person = ?",
-							     new String[] { Integer.toString(contact.id()) },
-								 null);
+		Cursor cursor = _resolver.query(INBOX_URI, SMS_COLUMNS, 
+								 	    "person = ?",
+								 	    new String[] { Integer.toString(contact.id()) },
+								 	    null);
 		
-		return getMessagesFromCursor(cursor);
+		List<SMS> messages =  getMessagesFromCursor(cursor);
+		cursor.close();
 		
-	}
-	
-	public static List<SMS> getOutgoingMessagesFromContact(ContentResolver cr, Person contact) {
-		
-		Cursor cursor = cr.query(OUTBOX_URI, SMS_COLUMNS, 
-				 				 "address = ? OR address = ? OR  address = ? OR address = ?",
-				 				 contact.allPhonePermutations(),
-				 				 null);
-		
-		return getMessagesFromCursor(cursor);
+		return messages;
 		
 	}
 	
-	private static List<SMS> getMessagesFromCursor(Cursor cursor) {
+	public List<SMS> getOutgoingMessagesFromContact(Person contact) {
+		
+		Cursor cursor = _resolver.query(OUTBOX_URI, SMS_COLUMNS, 
+				 				 	    "address = ? OR address = ? OR  address = ? OR address = ?",
+				 				 	    contact.allPhonePermutations(),
+				 				 	    null);
+		
+		List<SMS> messages = getMessagesFromCursor(cursor);
+		cursor.close();
+		
+		return messages;
+		
+	}
+	
+	/** 
+	 * @return A map of dates to message counts
+	 */
+	public Map<Calendar, Integer> getMessageCountsForDates(Person contact) {
+		
+		String where = "person = ? OR (address = ? OR address = ? OR address = ? OR address = ?)";
+		String [] params = { Integer.toString(contact.id()), contact.phone(), 
+							 contact.phoneNoAreaCode(), contact.spacedPhone(),
+							 contact.spacedPhoneNoAreaCode() };
+		
+		Cursor cursor = _resolver.query(ALL_SMS_URI, new String [] { "date", "count(_id)" }, where, params, "date ASC");
+		cursor.moveToFirst();
+		
+		do {
+			GregorianCalendar calendar = new GregorianCalendar();
+			calendar.setTime(new Date(cursor.getInt(0)));
+			Log.d("PIE", "date: " + calendar.toString() + " count: " + cursor.getString(1) );
+		} while(cursor.moveToNext());
+		
+		return null;
+		
+	}
+	
+	private List<SMS> getMessagesFromCursor(Cursor cursor) {
 		
 		List<SMS> messages = new ArrayList<SMS>();
 		
@@ -73,7 +116,7 @@ public class SMSRepository {
 		
 	}
 	
-	private static SMS createSMSFromCursorRow(Cursor cursor) {
+	private SMS createSMSFromCursorRow(Cursor cursor) {
 		
 		/* Pretty much the idea here is to just go through each of the columns
 		 * in order. */

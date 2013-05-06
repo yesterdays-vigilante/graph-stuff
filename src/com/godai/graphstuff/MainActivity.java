@@ -24,6 +24,7 @@ public class MainActivity extends Activity {
 	private static final int CONTACT_PICKER_RESULT = 1001; 
 	
 	TextView text;
+	SMSRepository repository;
 	
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,6 +38,8 @@ public class MainActivity extends Activity {
         getResources();
         
         text.setText("Please select a contact");
+        
+        repository = new SMSRepository(getContentResolver());
         
     }
     
@@ -57,9 +60,8 @@ public class MainActivity extends Activity {
     			if(person == null || person.phone() == null)
     				text.setText("No phone number recorded");
     			else {
-    		        List<SMS> messages = SMSRepository.getAllMessagesFromAndToContact(getContentResolver(),
-							  person);
-
+    		        List<SMS> messages = repository.getAllMessagesFromAndToContact(person);
+    		        repository.getMessageCountsForDates(person);
 
 
     		        String msgText = person.name() + " and I have exchanged a total of " + 
