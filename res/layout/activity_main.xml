@@ -15,7 +15,8 @@
 	    android:text="@string/pick_contact"
 	    android:onClick="launchContactPicker" />
     
-    <ScrollView
+    <LinearLayout
+        android:id="@+id/scroll_view_one"
         android:layout_below="@id/select_contact"
         android:layout_width="match_parent"
         android:layout_height="match_parent" >
@@ -25,5 +26,5 @@
        		android:layout_width="wrap_content"
         	android:layout_height="wrap_content"
         	android:text="@string/hello_world" />
-	</ScrollView>
+	</LinearLayout>
 </RelativeLayout>

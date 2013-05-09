@@ -1,6 +1,14 @@
 package com.godai.graphstuff;
 
-import java.util.List;
+import java.util.Date;
+import java.util.Map;
+
+import org.achartengine.ChartFactory;
+import org.achartengine.GraphicalView;
+import org.achartengine.model.TimeSeries;
+import org.achartengine.model.XYMultipleSeriesDataset;
+import org.achartengine.renderer.XYMultipleSeriesRenderer;
+import org.achartengine.renderer.XYSeriesRenderer;
 
 import android.app.Activity;
 import android.content.Context;
@@ -11,11 +19,12 @@ import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
+import android.view.ViewGroup.LayoutParams;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.godai.graphstuff.data.AppData;
 import com.godai.graphstuff.data.Person;
-import com.godai.graphstuff.data.SMS;
 import com.godai.graphstuff.data.repositories.PersonRepository;
 import com.godai.graphstuff.data.repositories.SMSRepository;
 
@@ -25,6 +34,7 @@ public class MainActivity extends Activity {
 	
 	TextView text;
 	SMSRepository repository;
+	GraphicalView chart;
 	
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,20 +70,23 @@ public class MainActivity extends Activity {
     			if(person == null || person.phone() == null)
     				text.setText("No phone number recorded");
     			else {    				
-    		        List<SMS> messages = repository.getAllMessagesFromAndToContact(person);    		        
-
-    		        String msgText = person.name() + " and I have exchanged a total of " + 
-    		        				 messages.size() + " messages";
+    		        LinearLayout view = (LinearLayout) findViewById(R.id.scroll_view_one);
+    		        Map<Date, Integer> messagesPerDay = repository.getMessageCountsForDates(person);
+    		        TimeSeries series = new TimeSeries("Amount of Messages vs date");
     		        
-    		        float total=0;
-    		        for(SMS msg : messages ){
-    		        	total += msg.getMeanWordLen();
-    		        }
+    		        for(Date date : messagesPerDay.keySet())
+    		        	series.add(date, messagesPerDay.get(date));
     		        
-    		        msgText = msgText + "\nWith an average word length of "+(total/messages.size());
+    		        XYMultipleSeriesDataset dataset = new XYMultipleSeriesDataset();
+    		        XYMultipleSeriesRenderer renderer = new XYMultipleSeriesRenderer();
+    		        renderer.addSeriesRenderer(new XYSeriesRenderer());
+    		        dataset.addSeries(series);
     		        
-
-    		        text.setText(msgText);
+					chart = ChartFactory.getTimeChartView(this, dataset, renderer, "dd/MM/yyyy");
+					
+					view.removeAllViews();
+					view.addView(chart, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+    		        
     			}
     		}
     	}
@@ -83,6 +96,15 @@ public class MainActivity extends Activity {
     	
     }
 
+    public void onResume() {    	
+    	
+    	if(chart != null)
+    		chart.repaint();
+    	
+    	super.onResume();
+
+    }
+    
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
