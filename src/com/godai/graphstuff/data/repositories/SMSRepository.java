@@ -150,5 +150,49 @@ public class SMSRepository {
 		
 	}
 	
-
+	
+	
+	/*
+	 * 
+	 * NOTE: while I'm pretty sure this works, there are issues upstream with receiving full messages sets
+	 * that courses this to seem incorrect. 
+	 */
+	public SMS getFirstInConvo( SMS mess, List<SMS> messages, int hours ){
+	
+		
+		int index = messages.indexOf(mess);
+		
+		long gap = 3600000 * hours;
+		
+		while(index+1 < messages.size()){
+			if( (messages.get(index).date() - messages.get(index+1).date()) > gap){
+				return messages.get(index);
+			}else{
+				index++;
+			}			
+		}
+		return messages.get(index);	
+	}
+	
+	public SMS getLastInConvo( SMS mess, List<SMS> messages, int hours ){
+	
+		
+		int index = messages.indexOf(mess);
+		
+		long gap = 3600000 * hours;
+		
+		while(index-1 >= 0){
+			if( (messages.get(index-1).date()) - messages.get(index).date()  > gap){
+				return messages.get(index);
+			}else{
+				index--;
+			}			
+		}
+		return messages.get(index);	
+	}
+	
+	public List<SMS> getConvo(SMS mess,  List<SMS> messages, int hours){		
+		return messages.subList( messages.indexOf(getLastInConvo(mess, messages, hours)) ,messages.indexOf(getFirstInConvo(mess, messages, hours)));
+	}
+	
 }
