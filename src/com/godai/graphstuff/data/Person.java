@@ -1,5 +1,8 @@
 package com.godai.graphstuff.data;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.godai.graphstuff.helpers.StringHelper;
 
 /**
@@ -9,25 +12,24 @@ import com.godai.graphstuff.helpers.StringHelper;
  */
 public class Person {
 	
+	public static int PERMUTATIONS = 4;
+	
 	private int _id;
 	private String _name;
-	private String _phone;
+	private List<String> _phoneNumbers;
 	
-	public Person(int id, String name, String phone) {
+	public Person(int id, String name, List<String> phoneNumbers) {
 		
 		_id = id;
 		_name = name;
-		
-		if(phone.charAt(0) == '+')
-			_phone = phone;
-		else
-			_phone = String.format("%+d%s", AppData.countryCode(), phone.substring(1));
-		
+		_phoneNumbers = addAreaCodeToPhone(phoneNumbers);
+				
 	}
 
 	public int id() {
 		
 		return _id;
+
 		
 	}
 
@@ -37,34 +39,57 @@ public class Person {
 		
 	}
 
-	public String phone() {
+	public List<String> phone() {
 		
-		return _phone;
-		
-	}
-	
-	public String phoneNoAreaCode() {
-		
-		// The +1 is for the plus
-		return "0" + _phone.substring(AppData.countryCodeLength() + 1);
+		return _phoneNumbers;
 		
 	}
 	
-	public String spacedPhone() {
+	public List<String> allPhonePermutations() {
 		
-		return StringHelper.addSpacesToPhone(_phone);
+		List<String> numbers = new ArrayList<String>();
+		
+		for(String number : _phoneNumbers) {
+			numbers.add(number);
+			numbers.add(stripAreaCode(number));
+			numbers.add(StringHelper.addSpacesToPhone(number));
+			numbers.add(StringHelper.addSpacesToPhone(stripAreaCode(number)));
+		}
+		
+		return numbers;		
+	}
+	
+	private String stripAreaCode(String number) {
+		
+		// The +1 is for the plus character
+		String numberPart = number.substring(AppData.countryCodeLength() + 1);
+		
+		if(numberPart.length() >= 9)		
+			return "0" + numberPart;
+		else
+			return numberPart;
 		
 	}
 	
-	public String spacedPhoneNoAreaCode() {
+	private List<String> addAreaCodeToPhone(List<String> numbers) {
 		
-		return StringHelper.addSpacesToPhone(phoneNoAreaCode());
-	
-	}
-	
-	public String [] allPhonePermutations() {
+		List<String> modNumbers = new ArrayList<String>();
 		
-		return new String [] { _phone, phoneNoAreaCode(), spacedPhone(), spacedPhoneNoAreaCode() };
+		for(String number : numbers) {
+			if(number.charAt(0) == '+')
+				modNumbers.add(number);
+			else {
+				/* If the number has a '0' at the start, it needs to
+				 * be replaced with the area code. Otherwise, the area
+				 * code is just added on. */
+				if(number.charAt(0) == '0')
+					number = number.substring(1);
+				
+				modNumbers.add(String.format("%+d%s", AppData.countryCode(), number));
+			}
+		}
+		
+		return modNumbers;
 		
 	}
 

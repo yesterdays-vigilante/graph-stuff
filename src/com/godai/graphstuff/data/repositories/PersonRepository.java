@@ -1,5 +1,8 @@
 package com.godai.graphstuff.data.repositories;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import android.content.ContentResolver;
 import android.database.Cursor;
 import android.net.Uri;
@@ -22,7 +25,7 @@ public class PersonRepository {
 	public static Person getContactByID(ContentResolver cr, int id) {
 		
 		int rawID = -1;
-		String phone = null;
+		List<String> phone = new ArrayList<String>();
 		//Fetch the contact name separately.
 		String name = getName(cr, id);
 		
@@ -32,9 +35,13 @@ public class PersonRepository {
 		
 		Cursor cursor = cr.query(DATA_URI, new String[] { Data.RAW_CONTACT_ID, Data.DATA1  }, where, data, null);
 		
-		if(cursor.moveToFirst()) {
+		if(cursor.moveToFirst()) {	
+			// This ID should be the same for all entries, so we can get it here.
 			rawID = cursor.getInt(0);
-			phone = cursor.getString(1);
+			
+			do {
+				phone.add(cursor.getString(1));
+			}while(cursor.moveToNext());
 		}
 		
 		if(rawID == -1)

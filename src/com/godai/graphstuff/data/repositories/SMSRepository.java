@@ -12,6 +12,7 @@ import org.joda.time.LocalDate;
 import android.content.ContentResolver;
 import android.database.Cursor;
 import android.net.Uri;
+import android.util.Log;
 
 import com.godai.graphstuff.data.Person;
 import com.godai.graphstuff.data.SMS;
@@ -26,11 +27,11 @@ public class SMSRepository {
 	
 	/* This is an undocumented content provider. Not good, but there doesn't 
 	 * appear to be any other way to do it. It's not for clients, so no matter. */
-	private static Uri INBOX_URI = Uri.parse("content://sms/inbox");
-	private static Uri OUTBOX_URI = Uri.parse("content://sms/sent");
-	private static Uri ALL_SMS_URI = Uri.parse("content://sms");
+	private static final Uri INBOX_URI = Uri.parse("content://sms/inbox");
+	private static final Uri OUTBOX_URI = Uri.parse("content://sms/sent");
+	private static final Uri ALL_SMS_URI = Uri.parse("content://sms");
 	
-	private static String [] SMS_COLUMNS = { "_id", "thread_id", "address",
+	private static final String [] SMS_COLUMNS = { "_id", "thread_id", "address",
 											 "body", "person", "date",
 											 "date_sent", "status", "protocol",
 											 "read", "seen" };
@@ -45,8 +46,15 @@ public class SMSRepository {
 	
 	public List<SMS> getAllMessagesFromAndToContact(Person contact) {
 		
-		List<SMS> messages = getIncomingMessagesFromContact(contact);
-		messages.addAll(getOutgoingMessagesFromContact(contact));
+		List<SMS> messages =  getMessages(ALL_SMS_URI, SMS_COLUMNS, 
+				   createWhere(contact),
+				   createWhereData(contact),
+				   null);
+		
+		for(String number : contact.allPhonePermutations())
+			Log.d("PENGUIN", number);
+		
+		Log.d("PENGUIN", Integer.toString(messages.size()));
 		
 		return messages;
 		
@@ -55,8 +63,8 @@ public class SMSRepository {
 	public List<SMS> getIncomingMessagesFromContact(Person contact) {
 		
 		return getMessages(INBOX_URI, SMS_COLUMNS, 
-						   "person = ?",
-						   new String[] { Integer.toString(contact.id()) },
+						   createWhere(contact),
+						   createWhereData(contact),
 						   null);
 		
 	}
@@ -64,8 +72,8 @@ public class SMSRepository {
 	public List<SMS> getOutgoingMessagesFromContact(Person contact) {
 		
 		return getMessages(OUTBOX_URI, SMS_COLUMNS, 
-				 		   "address = ? OR address = ? OR  address = ? OR address = ?",
-				 		   contact.allPhonePermutations(), null);
+						   createWhere(contact),
+				   		   createWhereData(contact), null);
 	}
 	
 	public List<SMS> getMessagesForDayOf(Person contact, Date date) {
@@ -74,15 +82,13 @@ public class SMSRepository {
 		// Really truly seems to be the nicest way to get the end of the day x_X
 		DateTime endOfDay = new DateTime(date).withHourOfDay(23).withMinuteOfHour(59).withSecondOfMinute(59);
 		
-		String where = "(person = ? OR (address = ? OR address = ? OR address = ?" +
-					   " OR address = ?)) AND date BETWEEN ? AND ?";
-		String [] params = { Integer.toString(contact.id()), contact.phone(),
-							 contact.phoneNoAreaCode(), contact.spacedPhone(),
-							 contact.spacedPhoneNoAreaCode(),
-							 Long.toString(startOfDay.getMillis()), 
-							 Long.toString(endOfDay.getMillis()) };
+		String where = createWhere(contact, "AND date BETWEEN ? AND ?");
 		
-		return getMessages(ALL_SMS_URI, SMS_COLUMNS, where, params,"date ASC");
+		List<String> extras = new ArrayList<String>();
+		extras.add(Long.toString(startOfDay.getMillis())); 
+		extras.add(Long.toString(endOfDay.getMillis()));
+		
+		return getMessages(ALL_SMS_URI, SMS_COLUMNS, where, createWhereData(contact, extras),"date ASC");
 		
 	}
 	
@@ -93,13 +99,11 @@ public class SMSRepository {
 		
 		Map<Date, Integer> values = new LinkedHashMap<Date, Integer>();
 		
-		// Unfortunately, we can't do GROUP BY in a ContentResolver
-		String where = "person = ? OR (address = ? OR address = ? OR address = ? OR address = ?)";
-		String [] params = { Integer.toString(contact.id()), contact.phone(), 
-							 contact.phoneNoAreaCode(), contact.spacedPhone(),
-							 contact.spacedPhoneNoAreaCode() };
+		Cursor cursor = _resolver.query(ALL_SMS_URI, new String [] { "date" },
+										createWhere(contact), 
+										createWhereData(contact), 
+										"date ASC");
 		
-		Cursor cursor = _resolver.query(ALL_SMS_URI, new String [] { "date" }, where, params, "date ASC");
 		cursor.moveToFirst();
 		
 		do {
@@ -122,6 +126,54 @@ public class SMSRepository {
 		cursor.moveToFirst();
 		
 		return getMessagesFromCursor(cursor);
+		
+	}
+	
+	private String createWhere(Person contact) {
+		
+		return createWhere(contact, null);
+		
+	}
+	
+	private String createWhere(Person contact, String extras) {
+		
+		StringBuilder builder = new StringBuilder("(address IN (");
+		
+		int numPermutations = contact.phone().size() * Person.PERMUTATIONS;
+		
+		for(int i = 0; i < numPermutations; i++) {
+			builder.append("?");
+			
+			if(i != (numPermutations - 1))
+				builder.append(",");
+		}
+		
+		builder.append("))\n");
+		builder.append("OR person = ?");
+		
+		if(extras != null)
+			builder.append("\n" + extras);
+		
+		return builder.toString();
+		
+	}
+	
+	private String [] createWhereData(Person contact) {
+		
+		return createWhereData(contact, null);
+		
+	}
+	
+	private String [] createWhereData(Person contact, List<String> extras) {
+		
+		List<String> data = contact.allPhonePermutations();
+		
+		data.add(Integer.toString(contact.id()));
+		
+		if(extras != null)
+			data.addAll(extras);
+		
+		return data.toArray(new String[data.size()]);
 		
 	}
 	
@@ -153,7 +205,6 @@ public class SMSRepository {
 	
 	
 	/*
-	 * 
 	 * NOTE: while I'm pretty sure this works, there are issues upstream with receiving full messages sets
 	 * that courses this to seem incorrect. 
 	 */

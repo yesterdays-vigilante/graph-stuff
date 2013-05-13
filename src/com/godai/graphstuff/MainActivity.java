@@ -69,7 +69,8 @@ public class MainActivity extends Activity {
     			
     			if(person == null || person.phone() == null)
     				text.setText("No phone number recorded");
-    			else {    				
+    			else {
+    				repository.getAllMessagesFromAndToContact(person);
     		        LinearLayout view = (LinearLayout) findViewById(R.id.scroll_view_one);
     		        Map<Date, Integer> messagesPerDay = repository.getMessageCountsForDates(person);
     		        TimeSeries series = new TimeSeries("Amount of Messages vs date");
