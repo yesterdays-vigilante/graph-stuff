@@ -202,18 +202,24 @@ public class SMSRepository {
 		
 	}
 	
+	/*
+	 * NOTE: BELOW METHORDS NEED TO BE FACTORED OUT TO SOMEWHERE MORE SANE
+	 * WHEN THEN HAPPENS THE (SMS, List<SMS>, gap) format will likely change, hence why ive kept it open 
+	 */
 	
 	
 	/*
+	 * 
 	 * NOTE: while I'm pretty sure this works, there are issues upstream with receiving full messages sets
 	 * that courses this to seem incorrect. 
 	 */
-	public SMS getFirstInConvo( SMS mess, List<SMS> messages, int hours ){
+	public SMS getFirstInConvo( SMS mess, List<SMS> messages, int convoGapHours ){
 	
 		
 		int index = messages.indexOf(mess);
 		
-		long gap = 3600000 * hours;
+		// hours to millisec transform
+		long gap = 3600000 * convoGapHours;
 		
 		while(index+1 < messages.size()){
 			if( (messages.get(index).date() - messages.get(index+1).date()) > gap){
@@ -225,12 +231,13 @@ public class SMSRepository {
 		return messages.get(index);	
 	}
 	
-	public SMS getLastInConvo( SMS mess, List<SMS> messages, int hours ){
+	public SMS getLastInConvo( SMS mess, List<SMS> messages, int convoGapHours ){
 	
 		
 		int index = messages.indexOf(mess);
 		
-		long gap = 3600000 * hours;
+		// hours to millisec transform
+		long gap = 3600000 * convoGapHours;
 		
 		while(index-1 >= 0){
 			if( (messages.get(index-1).date()) - messages.get(index).date()  > gap){
@@ -242,8 +249,41 @@ public class SMSRepository {
 		return messages.get(index);	
 	}
 	
-	public List<SMS> getConvo(SMS mess,  List<SMS> messages, int hours){		
-		return messages.subList( messages.indexOf(getLastInConvo(mess, messages, hours)) ,messages.indexOf(getFirstInConvo(mess, messages, hours)));
+	public List<SMS> getConvo(SMS mess,  List<SMS> messages, int convoGapHours){		
+		return messages.subList( messages.indexOf(getLastInConvo(mess, messages, convoGapHours)) ,messages.indexOf(getFirstInConvo(mess, messages, convoGapHours)));
 	}
 	
+	public float getQuestionRate( SMS mess, List<SMS> messages, int convoGapHours ){
+		
+		List<SMS> convo = getConvo(mess, messages, convoGapHours);
+		
+		int sent = 0, recived =0;
+		
+		for(SMS sms : convo ){
+			if( sms.dateSent() == 0){
+				recived += getSubStrCount(sms, '?');
+			}else{
+				sent += getSubStrCount(sms, '?');
+			}
+		}
+		
+		return (float)sent / recived;
+	}
+	
+	
+	/*
+	 * TODO: this is only counts single chars, not strings, needs to be fixed
+	 */
+	public int getSubStrCount(SMS message, char token){
+		
+		int count = 0;
+		
+		for (int i = 0; i < message.body().length(); i++){
+			if( message.body().charAt(i) == token ){
+				count++;
+			}
+		}
+		
+		return count;
+	}
 }
