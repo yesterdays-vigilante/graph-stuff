@@ -9,6 +9,7 @@ import org.achartengine.model.TimeSeries;
 import org.achartengine.model.XYMultipleSeriesDataset;
 import org.achartengine.renderer.XYMultipleSeriesRenderer;
 import org.achartengine.renderer.XYSeriesRenderer;
+import org.joda.time.DateTime;
 
 import android.app.Activity;
 import android.content.Context;
@@ -75,8 +76,19 @@ public class MainActivity extends Activity {
     		        Map<Date, Integer> messagesPerDay = repository.getMessageCountsForDates(person);
     		        TimeSeries series = new TimeSeries("Amount of Messages vs date");
     		        
-    		        for(Date date : messagesPerDay.keySet())
-    		        	series.add(date, messagesPerDay.get(date));
+    		        DateTime today = DateTime.now();
+    		        DateTime date = new DateTime(messagesPerDay.keySet().iterator().next());
+    		        
+    		        
+    		        while(date.compareTo(today) < 0) {
+    		        	if(messagesPerDay.containsKey(date.toDate()))
+    		        		series.add(date.toDate(), messagesPerDay.get(date.toDate()));
+    		        	else
+    		        		series.add(date.toDate(), 0);
+    		        		
+    		        	date = date.plusDays(1);
+    		        	Log.d("DATE", date.toString());
+    		        }	
     		        
     		        XYMultipleSeriesDataset dataset = new XYMultipleSeriesDataset();
     		        XYMultipleSeriesRenderer renderer = new XYMultipleSeriesRenderer();
