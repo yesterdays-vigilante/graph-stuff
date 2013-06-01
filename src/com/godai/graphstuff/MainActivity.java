@@ -14,6 +14,7 @@ import org.joda.time.DateTime;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.provider.ContactsContract.Contacts;
 import android.telephony.TelephonyManager;
@@ -72,7 +73,6 @@ public class MainActivity extends Activity {
     				text.setText("No phone number recorded");
     			else {
     				
-    				
     				repository.getAllMessagesFromAndToContact(person);
     		        LinearLayout view = (LinearLayout) findViewById(R.id.scroll_view_one);
     		        Map<Date, Integer> messagesPerDay = repository.getMessageCountsForDates(person);
@@ -108,7 +108,11 @@ public class MainActivity extends Activity {
     		        dataset.addSeries(aveSeries);
     		        
     		        renderer.addSeriesRenderer(new XYSeriesRenderer());
-    		        renderer.addSeriesRenderer(new XYSeriesRenderer());
+    		        
+    		        XYSeriesRenderer x = new XYSeriesRenderer();
+    		        x.setColor(Color.RED);
+    		        renderer.addSeriesRenderer(x);
+    		        
     		        
 					chart = ChartFactory.getTimeChartView(this, dataset, renderer, "dd/MM/yyyy");
 					
@@ -123,8 +127,6 @@ public class MainActivity extends Activity {
     	}
     	
     }
-    
-    
 
     public void onResume() {    	
     	
