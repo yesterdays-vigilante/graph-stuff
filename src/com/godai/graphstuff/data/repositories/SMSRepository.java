@@ -204,16 +204,27 @@ public class SMSRepository {
 	
 	/*
 	 * NOTE: BELOW METHORDS NEED TO BE FACTORED OUT TO SOMEWHERE MORE SANE
-	 * WHEN THEN HAPPENS THE (SMS, List<SMS>, gap) format will likely change, hence why ive kept it open 
+	 * WHEN THEN HAPPENS THE (SMS, List<SMS>, gap) (e.g, the set of messages
+	 * being worked on will likely need to be stored on selection so wont be past
+	 * every time) format will likely change, hence why ive kept it open 
 	 */
 	
 	
 	/*
-	 * 
-	 * NOTE: while I'm pretty sure this works, there are issues upstream with receiving full messages sets
-	 * that courses this to seem incorrect. 
+	 * TODO: this needs to be rewriten in to a faster search
 	 */
-	public SMS getFirstInConvo( SMS mess, List<SMS> messages, int convoGapHours ){
+	public SMS getMessageByID(int messId, List<SMS> messages){
+		
+		for( SMS sms : messages ){
+			if(sms.id() == messId){
+				return sms;
+			}
+		}
+		
+		return null;
+	}
+				
+	public SMS getFirstInConvo(  SMS mess, List<SMS> messages, int convoGapHours ){
 	
 		
 		int index = messages.indexOf(mess);
@@ -249,17 +260,42 @@ public class SMSRepository {
 		return messages.get(index);	
 	}
 	
-	public List<SMS> getConvo(SMS mess,  List<SMS> messages, int convoGapHours){		
-		return messages.subList( messages.indexOf(getLastInConvo(mess, messages, convoGapHours)) ,messages.indexOf(getFirstInConvo(mess, messages, convoGapHours)));
+//	public List<List<SMS>> getConvList(SMS mess,  List<SMS> messages, int convoGapHours){
+//		
+//		ArrayList<ArrayList<SMS>> listOfConv = new ArrayList<ArrayList<SMS>>();
+//		
+//		for(int i =0; i < messages.size() ; i++){
+//			listOfConv.add(getConvo( ))
+//		}
+//		
+//		
+//		return null
+//		
+//	}
+	
+	public List<SMS> getConvo(int messageId,  List<SMS> messages, int convoGapInHours){		
+		SMS sms = getMessageByID(messageId, messages);
+		return messages.subList( messages.indexOf(getLastInConvo(sms, messages, convoGapInHours)) ,
+				                 messages.indexOf(getFirstInConvo(sms, messages, convoGapInHours)));
 	}
 	
-	public float getQuestionRate( SMS mess, List<SMS> messages, int convoGapHours ){
+	public List<SMS> getConvo(SMS mess,  List<SMS> messages, int convoGapInHours){		
+		return messages.subList( messages.indexOf(getLastInConvo(mess, messages, convoGapInHours)) ,
+				                 messages.indexOf(getFirstInConvo(mess, messages, convoGapInHours)));
 		
-		List<SMS> convo = getConvo(mess, messages, convoGapHours);
+	}
+	
+	
+	
+	
+	
+	//operations on messages
+	
+	public float getQuestionRatio(List<SMS> convInQesution, int convoGapHours ){
 		
 		int sent = 0, recived =0;
 		
-		for(SMS sms : convo ){
+		for(SMS sms : convInQesution ){
 			if( sms.dateSent() == 0){
 				recived += getSubStrCount(sms, '?');
 			}else{
@@ -273,6 +309,8 @@ public class SMSRepository {
 	
 	/*
 	 * TODO: this is only counts single chars, not strings, needs to be fixed
+	 * also needs to discard repeats, so if you looking for '?' then "???" should likely just count as one
+	 * 
 	 */
 	public int getSubStrCount(SMS message, char token){
 		

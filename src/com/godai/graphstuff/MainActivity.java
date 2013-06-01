@@ -71,35 +71,50 @@ public class MainActivity extends Activity {
     			if(person == null || person.phone() == null)
     				text.setText("No phone number recorded");
     			else {
+    				
+    				
     				repository.getAllMessagesFromAndToContact(person);
     		        LinearLayout view = (LinearLayout) findViewById(R.id.scroll_view_one);
     		        Map<Date, Integer> messagesPerDay = repository.getMessageCountsForDates(person);
     		        TimeSeries series = new TimeSeries("Amount of Messages vs date");
+    		        
+    		        TimeSeries aveSeries = new TimeSeries("Rolling average of Messages vs date");
+    		        int RollingMessageSum =0;
+    		        int RollingMessageCount =0;
     		        
     		        DateTime today = DateTime.now();
     		        DateTime date = new DateTime(messagesPerDay.keySet().iterator().next());
     		        
     		        
     		        while(date.compareTo(today) < 0) {
-    		        	if(messagesPerDay.containsKey(date.toDate()))
+    		        	if(messagesPerDay.containsKey(date.toDate())){
     		        		series.add(date.toDate(), messagesPerDay.get(date.toDate()));
-    		        	else
+    		        		RollingMessageSum +=  messagesPerDay.get(date.toDate());  
+    		        	}else{
     		        		series.add(date.toDate(), 0);
-    		        		
+    		        	}
+    		        	
+    		        	RollingMessageCount++;
+    		        	aveSeries.add(date.toDate(), (RollingMessageSum/RollingMessageCount));
+    		        	
     		        	date = date.plusDays(1);
     		        	Log.d("DATE", date.toString());
     		        }	
     		        
     		        XYMultipleSeriesDataset dataset = new XYMultipleSeriesDataset();
     		        XYMultipleSeriesRenderer renderer = new XYMultipleSeriesRenderer();
+    		        
+    		        dataset.addSeries(series);		        
+    		        dataset.addSeries(aveSeries);
+    		        
     		        renderer.addSeriesRenderer(new XYSeriesRenderer());
-    		        dataset.addSeries(series);
+    		        renderer.addSeriesRenderer(new XYSeriesRenderer());
     		        
 					chart = ChartFactory.getTimeChartView(this, dataset, renderer, "dd/MM/yyyy");
 					
 					view.removeAllViews();
 					view.addView(chart, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
-    		        
+   		        
     			}
     		}
     	}
@@ -108,6 +123,8 @@ public class MainActivity extends Activity {
     	}
     	
     }
+    
+    
 
     public void onResume() {    	
     	
